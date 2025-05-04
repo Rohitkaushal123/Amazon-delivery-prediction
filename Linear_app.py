@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 # Load model and columns
-model_path = r"D:\Data science Course\My projects\Amazon_delivery\model.pkl"
+model = pickle.load(open('model.pkl', 'rb'))  # If file is at root level
 col_path = r"D:\Data science Course\My projects\Amazon_delivery\columns.pkl"
 
 with open(model_path, 'rb') as f:
