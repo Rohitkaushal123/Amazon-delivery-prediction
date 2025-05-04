@@ -1,73 +1,67 @@
-from flask import Flask, render_template, request
+import streamlit as st
 import numpy as np
 import pickle
 import gdown
+import os
 
-app = Flask(__name__)
+# Title
+st.title("📦 Amazon Delivery Time Prediction")
 
-# ✅ Download model from Google Drive
-url = 'https://drive.google.com/uc?id=1RY85dShLmg4QEsIHSUY4yaNtcOV0BtaD'
-output = 'Random_forest_model.pkl'
-gdown.download(url, output, quiet=False)
+# ✅ Download and load the model
+model_url = 'https://drive.google.com/uc?id=1RY85dShLmg4QEsIHSUY4yaNtcOV0BtaD'
+model_path = 'Random_forest_model.pkl'
+if not os.path.exists(model_path):
+    gdown.download(model_url, model_path, quiet=False)
 
-# ✅ Load the model
-with open('Random_forest_model.pkl', 'rb') as f:
+with open(model_path, 'rb') as f:
     model = pickle.load(f)
 
-@app.route('/')
-def home():
-    return render_template('form.html')
+# Inputs
+st.subheader("Agent & Delivery Details")
+age = st.number_input("Agent Age", min_value=18, max_value=60, value=30)
+rating = st.slider("Agent Rating", 0.0, 5.0, 4.5)
+distance = st.number_input("Distance (km)", min_value=0.0, value=10.0)
+order_hour = st.slider("Order Hour (0-23)", 0, 23, 10)
+pickup_hour = st.slider("Pickup Hour (0-23)", 0, 23, 12)
 
-@app.route('/predict', methods=['POST'])
-def predict():
+st.subheader("Conditions & Metadata")
+weather_input = st.selectbox("Weather", ['Cloudy', 'Fog', 'Sandstorms', 'Stormy', 'Sunny', 'Windy'])
+traffic_input = st.selectbox("Traffic", ['High', 'Jam', 'Low', 'Medium'])
+vehicle_input = st.selectbox("Vehicle", ['bicycle', 'bike', 'car', 'scooter', 'van'])
+area_input = st.selectbox("Area", ['Urban', 'Semi-Urban', 'Rural'])
+day_input = st.selectbox("Order Day", ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])
+category_input = st.selectbox("Category", [
+    'Apparel', 'Books', 'Clothing', 'Cosmetics', 'Electronics', 'Grocery',
+    'Home', 'Jewelry', 'Kitchen', 'Outdoors', 'Pet Supplies', 'Shoes',
+    'Skincare', 'Snacks', 'Sports', 'Toys'])
+
+if st.button("Predict Delivery Time"):
     try:
-        # Step 1: Numeric inputs
-        age = float(request.form['Agent_Age'])
-        rating = float(request.form['Agent_Rating'])
-        distance = float(request.form['Distance'])
-        order_hour = int(request.form['Order_hour'])
-        pickup_hour = int(request.form['Pickup_hour'])
-
-        # Step 2: One-hot encoded inputs
-        weather_input = request.form['Weather']
+        # One-hot encode categorical inputs
         weather_options = ['Cloudy', 'Fog', 'Sandstorms', 'Stormy', 'Sunny', 'Windy']
-        weather_features = [1 if weather_input == w else 0 for w in weather_options]
-
-        traffic_input = request.form['Traffic']
         traffic_options = ['High', 'Jam', 'Low', 'Medium']
-        traffic_features = [1 if traffic_input == t else 0 for t in traffic_options]
-        traffic_nan = [0]  # extra column added during encoding
-
-        vehicle_input = request.form['Vehicle']
         vehicle_options = ['bicycle', 'bike', 'car', 'scooter', 'van']
-        vehicle_features = [1 if vehicle_input == v else 0 for v in vehicle_options]
-
-        area_input = request.form['Area']
         area_options = ['Urban', 'Semi-Urban', 'Rural']
-        area_features = [1 if area_input == a else 0 for a in area_options]
-
-        day_input = request.form['Order_day']
         day_options = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-        day_features = [1 if day_input == d else 0 for d in day_options]
-
-        category_input = request.form['Category']
         category_options = ['Apparel', 'Books', 'Clothing', 'Cosmetics', 'Electronics', 'Grocery',
                             'Home', 'Jewelry', 'Kitchen', 'Outdoors', 'Pet Supplies', 'Shoes',
                             'Skincare', 'Snacks', 'Sports', 'Toys']
+
+        weather_features = [1 if weather_input == w else 0 for w in weather_options]
+        traffic_features = [1 if traffic_input == t else 0 for t in traffic_options] + [0]  # traffic_NaN = 0
+        vehicle_features = [1 if vehicle_input == v else 0 for v in vehicle_options]
+        area_features = [1 if area_input == a else 0 for a in area_options]
+        day_features = [1 if day_input == d else 0 for d in day_options]
         category_features = [1 if category_input == c else 0 for c in category_options]
 
-        # Final input
         final_input = [age, rating, distance, order_hour, pickup_hour] + \
-                      weather_features + traffic_features + traffic_nan + \
+                      weather_features + traffic_features + \
                       vehicle_features + area_features + day_features + category_features
 
         final_input = np.array([final_input])
 
-        # Predict
         prediction = model.predict(final_input)[0]
-        return render_template('form.html', prediction_text=f'Predicted Delivery Time: {prediction:.2f} minutes')
-    except Exception as e:
-        return f"Error: {e}"
+        st.success(f"🚚 Estimated Delivery Time: {prediction:.2f} minutes")
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    except Exception as e:
+        st.error(f"Something went wrong: {e}")
