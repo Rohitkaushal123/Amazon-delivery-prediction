@@ -3,16 +3,23 @@ import pickle
 import numpy as np
 import pandas as pd
 
-# Load model and columns
-model_path = pickle.load(open('Gradient_Boost_model.pkl', 'rb'))  # If file is at root level
-
-
-
+# Load the model
+model_path = 'Gradient_Boost_model.pkl'  # This is the actual file path
 with open(model_path, 'rb') as f:
     model = pickle.load(f)
 
+# Define all columns expected by the model
+col = [
+    'Agent_Age', 'Agent_Rating', 'Distance', 'Order_Hour', 'Pickup_Hour',
+    'Traffic_Low', 'Traffic_Medium', 'Traffic_High', 'Traffic_Jam',
+    'Weather_conditions_Sunny', 'Weather_conditions_Stormy', 'Weather_conditions_Sandstorms',
+    'Weather_conditions_Cloudy', 'Weather_conditions_Windy', 'Weather_conditions_Fog',
+    'Vehicle_condition_Scooter', 'Vehicle_condition_Bike', 'Vehicle_condition_Car',
+    'Area_Urban', 'Area_Metropolitan',
+    'Category_Laptop', 'Category_Mobile', 'Category_Fashion', 'Category_Grocery', 'Category_Others'
+]
 
-st.title("📦Amazon Delivery Time Prediction")
+st.title("📦 Amazon Delivery Time Prediction")
 
 # User Inputs
 age = st.number_input("Agent Age", min_value=18, max_value=60, value=30)
@@ -29,26 +36,28 @@ category = st.selectbox("Category", ["Laptop", "Mobile", "Fashion", "Grocery", "
 
 # Prediction button
 if st.button("Predict Delivery Time"):
-    # Step 1: Start with 0 for all columns
+    # Step 1: Start with all zeros
     input_data = {key: 0 for key in col}
 
-    # Step 2: Fill numeric values
+    # Step 2: Assign numerical values
     input_data['Agent_Age'] = age
     input_data['Agent_Rating'] = rating
     input_data['Distance'] = distance
     input_data['Order_Hour'] = order_hour
     input_data['Pickup_Hour'] = pickup_hour
 
-    # Step 3: Fill categorical one-hot encoded values
-    traffic_col = f'Traffic_{traffic}'
-    weather_col = f'Weather_conditions_{weather}'
-    vehicle_col = f'Vehicle_condition_{vehicle}'
-    area_col = f'Area_{area}'
-    category_col = f'Category_{category}'
+    # Step 3: Set one-hot values
+    feature_map = {
+        f'Traffic_{traffic}': 'traffic',
+        f'Weather_conditions_{weather}': 'weather',
+        f'Vehicle_condition_{vehicle}': 'vehicle',
+        f'Area_{area}': 'area',
+        f'Category_{category}': 'category'
+    }
 
-    for col_name in [traffic_col, weather_col, vehicle_col, area_col, category_col]:
-        if col_name in input_data:
-            input_data[col_name] = 1
+    for feature in feature_map:
+        if feature in input_data:
+            input_data[feature] = 1
 
     # Step 4: Convert to DataFrame
     final_input = pd.DataFrame([input_data])
