@@ -4,10 +4,10 @@ import pickle
 import gdown
 import os
 
-# Title
+
 st.title("📦 Amazon Delivery Time Prediction")
 
-# ✅ Download and load the model
+
 model_url = 'https://drive.google.com/uc?id=1RY85dShLmg4QEsIHSUY4yaNtcOV0BtaD'
 model_path = 'Random_forest_model.pkl'
 if not os.path.exists(model_path):
@@ -37,7 +37,6 @@ category_input = st.selectbox("Category", [
 
 if st.button("Predict Delivery Time"):
     try:
-        # One-hot encode categorical inputs
         weather_options = ['Cloudy', 'Fog', 'Sandstorms', 'Stormy', 'Sunny', 'Windy']
         traffic_options = ['High', 'Jam', 'Low', 'Medium']
         vehicle_options = ['bicycle', 'bike', 'car', 'scooter', 'van']
